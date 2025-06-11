@@ -8,6 +8,7 @@ import { Layout } from './components/layout/Layout';
 import { ProtectedRoute } from './components/utils/ProtectedRoute';
 
 import { fetchUser } from './context/userSlice';
+import { setTheme } from './context/themeSlice';
 import './App.css';
 import { HomePage } from './pages/HomePage';
 import { ProductsPage as ShopProductsPage } from './pages/ProductsPage';
@@ -24,18 +25,63 @@ import FAQ from './pages/FAQ';
 function App() {
   const dispatch = useDispatch();
   const { user, authLoading } = useSelector((state) => state.user);
+  const currentTheme = useSelector((state) => state.theme.currentTheme);
 
   useEffect(() => {
     dispatch(fetchUser());
+    
+    // Initialize theme on app start
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      dispatch(setTheme(savedTheme));
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      dispatch(setTheme(prefersDark ? 'dark' : 'light'));
+    }
   }, [dispatch]);
 
-  if (authLoading) return <div>Loading...</div>;
+  useEffect(() => {
+    // Apply theme class to document
+    if (currentTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [currentTheme]);
+
+  if (authLoading) {
+    return (
+      <div className="h-screen flex justify-center items-center
+                    bg-gradient-to-br from-cream-white to-warm-gray
+                    dark:from-dark-surface dark:to-midnight-blue">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full border-4 border-pastel-blue/30 
+                        dark:border-teal-glow/30 border-t-pastel-blue dark:border-t-teal-glow 
+                        animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-300 font-medium text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const isLoggedIn = !!user;
 
   return (
-    <div>
-      <ToastContainer />
+    <div className="transition-colors duration-300">
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme={currentTheme}
+        toastClassName="backdrop-blur-sm"
+      />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
@@ -91,7 +137,6 @@ function App() {
           />
 
          <Route path="/order-success/:userId/:orderId" element={<OrderConfirmationPage />} />
-
 
           {/* Public Routes */}
           <Route
